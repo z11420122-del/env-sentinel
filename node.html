@@ -220,6 +220,7 @@
     tick();
     setInterval(tick, 5000);
   })();
+  window.addEventListener("hashchange", function () { location.reload(); });
 </script>
 </body>
 </html>
