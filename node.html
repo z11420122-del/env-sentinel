@@ -71,6 +71,19 @@
   }
   ol b { display: block; }
   .note { border-left: 4px solid var(--accent); }
+  .live { border: 2px solid var(--accent); }
+  .live h2 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .live h2 small { font-size: 13px; font-weight: 400; color: var(--sub); }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .tile { background: var(--chip); border-radius: 12px; padding: 10px 12px; }
+  .tile .v { font-size: 26px; font-weight: 700; line-height: 1.2; }
+  .tile .u { font-size: 13px; color: var(--sub); margin-left: 3px; font-weight: 400; }
+  .tile .k { font-size: 13px; color: var(--sub); }
+  .state { margin: 10px 0 0; font-size: 14px; color: var(--sub); }
+  .state.ok::before, .state.old::before, .state.off::before { content: "● "; }
+  .state.ok::before { color: var(--accent); }
+  .state.old::before { color: #d98e04; }
+  .state.off::before { color: #c0392b; }
   footer { text-align: center; color: var(--sub); font-size: 13px; margin-top: 22px; }
 </style>
 </head>
@@ -79,6 +92,12 @@
   <span class="badge" id="nodeBadge">節點</span>
   <h1>環境<span>哨兵</span></h1>
   <p class="tag">工廠環境，用數據說話。</p>
+
+  <section class="live" id="live" hidden>
+    <h2>現在的數值 <small id="liveWhen"></small></h2>
+    <div class="grid" id="tiles"></div>
+    <p class="state" id="liveState"></p>
+  </section>
 
   <section>
     <h2>這顆節點在做什麼</h2>
@@ -111,7 +130,7 @@
 
   <section class="note">
     <h2>看即時數據</h2>
-    <p>此頁是節點的說明。即時數據與預警狀況，請看現場的中控螢幕。</p>
+    <p>上方是這顆節點目前量到的數值。完整趨勢、預警與紀錄，請看現場的中控螢幕。</p>
   </section>
 
   <footer>
@@ -125,6 +144,81 @@
       document.getElementById("nodeBadge").textContent = "節點 " + id;
       document.title = "環境哨兵 節點 " + id;
     }
+  })();
+
+  (function () {
+    var API = "https://env-sentinel.z11420122.workers.dev";
+    if (!API) return;
+    var id = decodeURIComponent((location.hash || "").replace(/^#/, "")).trim().toUpperCase();
+    if (!/^[A-Z][0-9]{1,2}$/.test(id)) return;
+    var sec = document.getElementById("live");
+    var tiles = document.getElementById("tiles");
+    var stateEl = document.getElementById("liveState");
+    var whenEl = document.getElementById("liveWhen");
+    sec.hidden = false;
+    var FIELDS = [
+      ["t", "溫度", "°C", 1],
+      ["rh", "相對濕度", "%RH", 1],
+      ["pm25", "PM2.5", "µg/m³", 1],
+      ["pm10", "PM10", "µg/m³", 1],
+      ["pm1", "PM1.0", "µg/m³", 1],
+      ["pm4", "PM4", "µg/m³", 1],
+      ["voc", "VOC 指數", "", 0],
+      ["nox", "NOx 指數", "", 0]
+    ];
+    function fmt(v, d) { return typeof v === "number" && isFinite(v) ? v.toFixed(d) : "—"; }
+    function draw(d) {
+      tiles.innerHTML = "";
+      FIELDS.forEach(function (f) {
+        var el = document.createElement("div");
+        el.className = "tile";
+        el.innerHTML = '<div class="k"></div><div><span class="v"></span><span class="u"></span></div>';
+        el.querySelector(".k").textContent = f[1];
+        el.querySelector(".v").textContent = fmt(d[f[0]], f[3]);
+        el.querySelector(".u").textContent = f[2];
+        tiles.appendChild(el);
+      });
+    }
+    function clock(ms) { var t = new Date(ms); return t.toLocaleTimeString("zh-TW", {hour12: false}); }
+    function show(d, age, cached) {
+      draw(d);
+      if (cached) {
+        stateEl.className = "state off";
+        stateEl.textContent = "目前連不上，顯示的是上次看到的數值（" + clock(d._seen) + "）。";
+        whenEl.textContent = "";
+      } else if (age <= 30) {
+        stateEl.className = "state ok";
+        stateEl.textContent = "即時，約每 10 秒更新。";
+        whenEl.textContent = age + " 秒前";
+      } else if (age <= 120) {
+        stateEl.className = "state old";
+        stateEl.textContent = "數值較舊，節點可能延遲傳送。";
+        whenEl.textContent = age + " 秒前";
+      } else {
+        stateEl.className = "state off";
+        stateEl.textContent = "節點目前沒有送出新數值，顯示的是最後一筆。";
+        whenEl.textContent = Math.round(age / 60) + " 分鐘前";
+      }
+    }
+    function cacheGet() { try { return JSON.parse(localStorage.getItem("last_" + id)); } catch (e) { return null; } }
+    function cachePut(d) { try { d._seen = Date.now(); localStorage.setItem("last_" + id, JSON.stringify(d)); } catch (e) {} }
+    function tick() {
+      fetch(API + "/latest?node=" + encodeURIComponent(id), {cache: "no-store"})
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (j) {
+          if (!j || !j.data) { stateEl.className = "state off"; stateEl.textContent = "這顆節點還沒有送出數值。"; return; }
+          var age = Math.max(0, Math.round((j.now - j.ts) / 1000));
+          cachePut(j.data);
+          show(j.data, age, false);
+        })
+        .catch(function () {
+          var c = cacheGet();
+          if (c) show(c, 0, true);
+          else { stateEl.className = "state off"; stateEl.textContent = "目前無法取得即時數值。"; }
+        });
+    }
+    tick();
+    setInterval(tick, 5000);
   })();
 </script>
 </body>
