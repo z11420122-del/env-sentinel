@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>環境哨兵 感測節點</title>
+<style>
+  :root {
+    --bg: #f4f8f7;
+    --card: #ffffff;
+    --ink: #0e2a2a;
+    --sub: #4a6361;
+    --line: #d6e3e0;
+    --accent: #0f9d8a;
+    --accent-ink: #ffffff;
+    --chip: #e3f4f1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1a1a;
+      --card: #122626;
+      --ink: #e8f4f2;
+      --sub: #9ab8b4;
+      --line: #25403f;
+      --accent: #3ccfb8;
+      --accent-ink: #062320;
+      --chip: #17322f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    line-height: 1.6;
+  }
+  main { max-width: 560px; margin: 0 auto; padding: 24px 16px 40px; }
+  .badge {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 700;
+    letter-spacing: .04em;
+    border-radius: 999px;
+    padding: 2px 14px;
+    font-size: 14px;
+  }
+  h1 { font-size: 34px; line-height: 1.2; margin: 14px 0 6px; }
+  h1 span { color: var(--accent); }
+  .tag { font-size: 17px; color: var(--sub); margin: 0 0 22px; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px 18px 16px;
+    margin-bottom: 14px;
+  }
+  h2 { font-size: 17px; margin: 0 0 10px; }
+  p { margin: 0 0 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; list-style: none; }
+  .chips li { background: var(--chip); border-radius: 999px; padding: 4px 12px; font-size: 15px; }
+  ol { margin: 0; padding-left: 0; list-style: none; counter-reset: s; }
+  ol li { position: relative; padding-left: 38px; margin-bottom: 10px; counter-increment: s; }
+  ol li::before {
+    content: counter(s);
+    position: absolute; left: 0; top: 1px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-ink);
+    text-align: center; line-height: 26px; font-weight: 700; font-size: 14px;
+  }
+  ol b { display: block; }
+  .note { border-left: 4px solid var(--accent); }
+  footer { text-align: center; color: var(--sub); font-size: 13px; margin-top: 22px; }
+</style>
+</head>
+<body>
+<main>
+  <span class="badge" id="nodeBadge">節點</span>
+  <h1>環境<span>哨兵</span></h1>
+  <p class="tag">工廠環境，用數據說話。</p>
+
+  <section>
+    <h2>這顆節點在做什麼</h2>
+    <p>它安裝在現場，持續量測所在位置的空氣品質與溫濕度，把數據傳回中控。環境出現異常時，系統預警，並留下當時的紀錄供事後查證。</p>
+  </section>
+
+  <section>
+    <h2>量測項目</h2>
+    <ul class="chips">
+      <li>溫度</li>
+      <li>相對濕度</li>
+      <li>PM1.0</li>
+      <li>PM2.5</li>
+      <li>PM4</li>
+      <li>PM10</li>
+      <li>VOC 指數</li>
+      <li>NOx 指數</li>
+    </ul>
+    <p style="margin-top:10px;color:var(--sub);font-size:14px">感測器：Sensirion SEN55（Grove 模組）。控制板：ESP32-S3。</p>
+  </section>
+
+  <section>
+    <h2>怎麼運作</h2>
+    <ol>
+      <li><b>量測</b>感測器持續讀取空氣與溫濕度。</li>
+      <li><b>傳送</b>控制板把數據傳到中控。</li>
+      <li><b>預警與查證</b>中控判斷異常、通知人員，並保存紀錄。</li>
+    </ol>
+  </section>
+
+  <section class="note">
+    <h2>看即時數據</h2>
+    <p>此頁是節點的說明。即時數據與預警狀況，請看現場的中控螢幕。</p>
+  </section>
+
+  <footer>
+    環境哨兵｜國立虎尾科技大學 智慧製造與量測研究室
+  </footer>
+</main>
+<script>
+  (function () {
+    var id = decodeURIComponent((location.hash || "").replace(/^#/, "")).trim().toUpperCase();
+    if (/^[A-Z][0-9]{1,2}$/.test(id)) {
+      document.getElementById("nodeBadge").textContent = "節點 " + id;
+      document.title = "環境哨兵 節點 " + id;
+    }
+  })();
+</script>
+</body>
+</html>
