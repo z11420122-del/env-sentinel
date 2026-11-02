@@ -217,8 +217,11 @@
           else { stateEl.className = "state off"; stateEl.textContent = "目前無法取得即時數值。"; }
         });
     }
-    tick();
-    setInterval(tick, 5000);
+    var timer = null;
+    function start() { if (!timer) { tick(); timer = setInterval(tick, 10000); } }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+    document.addEventListener("visibilitychange", function () { if (document.hidden) stop(); else start(); });
+    if (!document.hidden) start();
   })();
   window.addEventListener("hashchange", function () { location.reload(); });
 </script>
